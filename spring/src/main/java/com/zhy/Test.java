@@ -1,6 +1,7 @@
 package com.zhy;
 
 import com.spring.ZhyApplicationContext;
+import com.zhy.service.UserService;
 
 public class Test {
 
@@ -8,7 +9,8 @@ public class Test {
 
         ZhyApplicationContext applicationContext = new ZhyApplicationContext(AppConfig.class);
 
-        System.out.println(applicationContext.getBean("userService"));
+        UserService userService = (UserService) applicationContext.getBean("userService");
 
+        userService.test();
     }
 }

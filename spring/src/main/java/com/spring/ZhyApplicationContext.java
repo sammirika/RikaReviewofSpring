@@ -1,6 +1,7 @@
 package com.spring;
 
 import java.io.File;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.Map;
@@ -25,19 +26,43 @@ public class ZhyApplicationContext {
             BeanDefinition beanDefinition = entry.getValue();
             //如果是单例类
             if (beanDefinition.getScope().equals("singleton")) {
-                Object bean = CreatBean(beanDefinition);
+                Object bean = CreatBean(beanName,beanDefinition);
                 singletonObjects.put(beanName, bean);
             }
         }
 
     }
 
-    private Object CreatBean(BeanDefinition beanDefinition) {
+    private Object CreatBean(String beanName, BeanDefinition beanDefinition) {
 
         // 反射拿对象
         Class clazz = beanDefinition.getClazz();
+
+
         try {
             Object instance = clazz.getDeclaredConstructor().newInstance();
+
+            // 依赖注入
+            for (Field declaredFiled : clazz.getDeclaredFields()) {
+                // 如果有这个注解
+                if (declaredFiled.isAnnotationPresent(Autowired.class)) {
+                    Object bean = getBean(declaredFiled.getName());
+                    declaredFiled.setAccessible(true);
+                    declaredFiled.set(instance, bean);
+                }
+            }
+
+            // aware 回调
+            // 判断实例是否实现了BeanNameAware这个接口
+            if (instance instanceof BeanNameAware) {
+                ((BeanNameAware) instance).setBeanName(beanName);
+            }
+
+            // 初始化
+            if (instance instanceof InitializingBean) {
+                ((InitializingBean) instance).afterPropertiesSet();
+            }
+
             return instance;
         } catch (IllegalAccessException e) {
             e.printStackTrace();
@@ -46,6 +71,8 @@ public class ZhyApplicationContext {
         } catch (NoSuchMethodException e) {
             e.printStackTrace();
         } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -74,7 +101,6 @@ public class ZhyApplicationContext {
             File[] files = file.listFiles();
             for (File f : files) {
                 // 绝对路径/Users/zhouhongyuan/Desktop/VBlog/spring/target/classes/com/zhy/service/UserService.class
-                System.out.println(f.getAbsolutePath());
                 String fileName = f.getAbsolutePath();
                 if (fileName.endsWith(".class")) {
                     String className = fileName.substring(fileName.indexOf("com"), fileName.indexOf(".class"));
@@ -120,7 +146,7 @@ public class ZhyApplicationContext {
                 return o;
             } else {
                 // 如何创建bean
-                Object bean = CreatBean(beanDefinition);
+                Object bean = CreatBean(beanName,beanDefinition);
                 return bean;
             }
         } else {
