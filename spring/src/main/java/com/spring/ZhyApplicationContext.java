@@ -4,6 +4,8 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,6 +19,8 @@ public class ZhyApplicationContext {
     // beandefinitionMap保存对应的
     private ConcurrentHashMap<String, BeanDefinition> beandefinitionMap = new ConcurrentHashMap<>();
 
+    private List<BeanPostProcessor> beanPostProcessorList = new ArrayList<>();
+
     public ZhyApplicationContext(Class configClass) throws ClassNotFoundException {
         this.configClass = configClass;
         scan(configClass, beandefinitionMap);
@@ -26,7 +30,7 @@ public class ZhyApplicationContext {
             BeanDefinition beanDefinition = entry.getValue();
             //如果是单例类
             if (beanDefinition.getScope().equals("singleton")) {
-                Object bean = CreatBean(beanName,beanDefinition);
+                Object bean = CreatBean(beanName, beanDefinition);
                 singletonObjects.put(beanName, bean);
             }
         }
@@ -58,9 +62,24 @@ public class ZhyApplicationContext {
                 ((BeanNameAware) instance).setBeanName(beanName);
             }
 
+            // 初始化前
+            for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
+                instance = beanPostProcessor.postProcessBeforeInitialization(beanDefinition, beanName);
+            }
+
             // 初始化
             if (instance instanceof InitializingBean) {
-                ((InitializingBean) instance).afterPropertiesSet();
+                try {
+                    ((InitializingBean) instance).afterPropertiesSet();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+
+            // 初始化后
+            for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
+                instance = beanPostProcessor.postProcessAfterInitialization(beanDefinition, beanName);
             }
 
             return instance;
@@ -79,7 +98,7 @@ public class ZhyApplicationContext {
         return null;
     }
 
-    private static void scan(Class configClass, ConcurrentHashMap<String, BeanDefinition> beandefinitionMap) {
+    private void scan(Class configClass, ConcurrentHashMap<String, BeanDefinition> beandefinitionMap) {
         // 解析配置类
         // ComponentScan注解-->扫描路径-->扫描
         ComponentScan componentScanAnnotations = (ComponentScan) configClass.getDeclaredAnnotation(ComponentScan.class);
@@ -113,6 +132,12 @@ public class ZhyApplicationContext {
                             // bean初始化取决于作用域，要去解析类，判断当前bean是单例bean还是原型（prototype）bean
                             //beanDefinition
 
+                            if (BeanPostProcessor.class.isAssignableFrom(clazz)) {
+                                BeanPostProcessor instance = (BeanPostProcessor) clazz.getDeclaredConstructor().newInstance();
+                                beanPostProcessorList.add(instance);
+                            }
+
+
                             Component componentAnnotation = clazz.getDeclaredAnnotation(Component.class);
                             String beanName = componentAnnotation.value();
 
@@ -131,6 +156,14 @@ public class ZhyApplicationContext {
                         }
                     } catch (ClassNotFoundException e) {
                         e.printStackTrace();
+                    } catch (IllegalAccessException e) {
+                        e.printStackTrace();
+                    } catch (InstantiationException e) {
+                        e.printStackTrace();
+                    } catch (NoSuchMethodException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+                        e.printStackTrace();
                     }
                 }
             }
@@ -146,7 +179,7 @@ public class ZhyApplicationContext {
                 return o;
             } else {
                 // 如何创建bean
-                Object bean = CreatBean(beanName,beanDefinition);
+                Object bean = CreatBean(beanName, beanDefinition);
                 return bean;
             }
         } else {
