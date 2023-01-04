@@ -5,16 +5,20 @@ import com.spring.*;
 
 @Component("userService")
 //@Scope("protoType")
-public class UserService implements BeanNameAware, InitializingBean {
+public class UserService implements InitializingBean {
 
     @Autowired
     private OrderService orderService;
 
-    private String beanName;
+    private String name;
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     public void test() {
         System.out.println(orderService);
-        System.out.println(beanName);
+        System.out.println(name);
     }
 
     @Override
@@ -22,8 +26,4 @@ public class UserService implements BeanNameAware, InitializingBean {
         System.out.println("初始化");
     }
 
-    @Override
-    public void setBeanName(String name) {
-        beanName = name;
-    }
 }
