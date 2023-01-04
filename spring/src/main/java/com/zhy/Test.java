@@ -2,6 +2,7 @@ package com.zhy;
 
 import com.spring.ZhyApplicationContext;
 import com.zhy.service.UserService;
+import com.zhy.service.UserServiceImpl;
 
 public class Test {
 

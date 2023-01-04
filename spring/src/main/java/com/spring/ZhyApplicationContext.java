@@ -115,7 +115,7 @@ public class ZhyApplicationContext {
         if (file.isDirectory()) {
             File[] files = file.listFiles();
             for (File f : files) {
-                // 绝对路径/Users/zhouhongyuan/Desktop/VBlog/spring/target/classes/com/zhy/service/UserService.class
+                // 绝对路径/Users/zhouhongyuan/Desktop/VBlog/spring/target/classes/com/zhy/service/UserServiceImpl.class
                 String fileName = f.getAbsolutePath();
                 if (fileName.endsWith(".class")) {
                     String className = fileName.substring(fileName.indexOf("com"), fileName.indexOf(".class"));
